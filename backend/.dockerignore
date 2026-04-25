@@ -1,0 +1,12 @@
+node_modules
+dist
+.env
+*.log
+database.sqlite
+*.sqlite
+.git
+.gitignore
+docker-compose*.yml
+*.md
+tsconfig.tsbuildinfo
+check-db.*

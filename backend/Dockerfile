@@ -1,12 +1,12 @@
 # ── Stage 1: Build ────────────────────────────────────────────────────────────
+# Build context is ./backend (set in docker-compose.yaml)
 FROM node:20-alpine AS builder
 WORKDIR /app
 
-# Copy backend source (build context is repo root)
-COPY backend/package.json ./
-RUN npm install
+COPY package.json ./
+RUN npm install --no-audit --no-fund
 
-COPY backend/ ./
+COPY . .
 RUN npm run build
 
 # ── Stage 2: Production image ─────────────────────────────────────────────────
