@@ -23,7 +23,8 @@ ARG NEXT_PUBLIC_API_URL
 ENV NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL
 COPY --from=builder /app/frontend/.next ./.next
 COPY --from=builder /app/frontend/public ./public
-COPY --from=builder /app/frontend/node_modules ./node_modules
+# npm workspace hoists deps to root — copy from /app/node_modules
+COPY --from=builder /app/node_modules ./node_modules
 COPY --from=builder /app/frontend/package.json ./
 COPY --from=builder /app/frontend/next.config.js ./
 EXPOSE 3001
