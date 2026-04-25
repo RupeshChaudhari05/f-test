@@ -9,7 +9,7 @@ dist/
 # ── Env files (never commit secrets) ──────────────────────────────────────────
 .env
 .env.local
-.env.production
+
 # Allow these templates
 !.env.example
 
