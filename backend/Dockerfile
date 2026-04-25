@@ -23,21 +23,8 @@ WORKDIR /app
 COPY --from=builder /app/backend/dist ./dist
 COPY --from=builder /app/backend/node_modules ./node_modules
 COPY --from=builder /app/backend/package.json ./
-# sdk-dist is inside backend/ — SDK files served via /sdk route
+# sdk-dist contains pre-built SDK files served via /sdk route
 COPY --from=builder /app/backend/sdk-dist ./sdk-dist
-
-EXPOSE 3000
-# sdk-dist is inside backend/ — SDK files served via /sdk route
-COPY --from=builder /app/backend/sdk-dist ./sdk-dist
-
-EXPOSE 3000
-HEALTHCHECK --interval=30s --timeout=5s --retries=3 \
-  CMD wget -qO- http://localhost:3000/api/v1/health || exit 1
-CMD ["node", "dist/main.js"]
-# sdk-dist is inside backend/ — SDK files served via /sdk route
-COPY --from=builder /app/backend/sdk-dist ./sdk-dist
-# sdk-dist is inside backend/ — SDK files served via /sdk route
-COPY --from=builder /app/sdk-dist ./sdk-dist
 
 EXPOSE 3000
 HEALTHCHECK --interval=30s --timeout=5s --retries=3 \
