@@ -16,7 +16,7 @@ Posh notifcation system/
 │   └── Dockerfile    ← Uses NEXT_PUBLIC_API_URL build arg
 ├── nginx/
 │   └── nginx.conf    ← HTTPS reverse proxy config
-├── docker-compose.prod.yml      ← Full stack (all services in one)
+├── docker-compose.yaml         ← Full stack (all services in one)
 ├── docker-compose.backend.yml   ← Backend only
 ├── docker-compose.frontend.yml  ← Frontend only
 └── .env.production              ← Fill in before deploying
@@ -80,14 +80,14 @@ cp /etc/letsencrypt/live/posh.fontgenerator.club/fullchain.pem nginx/ssl/
 cp /etc/letsencrypt/live/posh.fontgenerator.club/privkey.pem nginx/ssl/
 
 # Deploy
-docker compose -f docker-compose.prod.yml up -d --build
+docker compose up -d --build
 ```
 
 ### Verify
 
 ```bash
 # Check all containers running
-docker compose -f docker-compose.prod.yml ps
+docker compose ps
 
 # Check backend health
 curl https://posh.fontgenerator.club/health
@@ -145,7 +145,7 @@ nginx/       ← Proxy config
 sdk/         ← Source (optional, sdk-dist is pre-built)
 scripts/     ← configure.js
 .env.production (local only, not in git)
-docker-compose.prod.yml
+docker-compose.yaml
 ```
 
 Push everything except secrets:
@@ -159,7 +159,7 @@ Then on VPS:
 ```bash
 git pull origin main
 npm run configure:prod
-docker compose -f docker-compose.prod.yml up -d --build
+docker compose up -d --build
 ```
 
 ---
@@ -171,7 +171,7 @@ docker compose -f docker-compose.prod.yml up -d --build
 apt install certbot
 
 # Stop nginx temporarily if running
-docker compose -f docker-compose.prod.yml stop nginx
+docker compose stop nginx
 
 # Get certificate
 certbot certonly --standalone -d posh.fontgenerator.club
@@ -182,13 +182,13 @@ cp /etc/letsencrypt/live/posh.fontgenerator.club/fullchain.pem nginx/ssl/
 cp /etc/letsencrypt/live/posh.fontgenerator.club/privkey.pem nginx/ssl/
 
 # Restart nginx
-docker compose -f docker-compose.prod.yml up -d nginx
+docker compose up -d nginx
 ```
 
 Auto-renew certs:
 ```bash
 # Add to crontab
-0 3 * * * certbot renew --deploy-hook "cp /etc/letsencrypt/live/posh.fontgenerator.club/fullchain.pem /opt/posh/nginx/ssl/ && cp /etc/letsencrypt/live/posh.fontgenerator.club/privkey.pem /opt/posh/nginx/ssl/ && docker compose -f /opt/posh/docker-compose.prod.yml restart nginx"
+0 3 * * * certbot renew --deploy-hook "cp /etc/letsencrypt/live/posh.fontgenerator.club/fullchain.pem /opt/posh/nginx/ssl/ && cp /etc/letsencrypt/live/posh.fontgenerator.club/privkey.pem /opt/posh/nginx/ssl/ && docker compose -f /opt/posh/docker-compose.yaml restart nginx"
 ```
 
 ---
@@ -215,7 +215,7 @@ After backend is deployed:
 cd /opt/posh
 git pull origin main
 npm run configure:prod
-docker compose -f docker-compose.prod.yml up -d --build
+docker compose up -d --build
 ```
 
 ---

@@ -4,8 +4,8 @@ services:
   frontend:
     image: posh-notification-frontend:latest
     build:
-      context: ./frontend
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: ./frontend/Dockerfile
       args:
         NEXT_PUBLIC_API_URL: ${BACKEND_URL:-https://posh.fontgenerator.club}
     env_file:
