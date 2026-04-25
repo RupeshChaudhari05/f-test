@@ -1,0 +1,16 @@
+version: '3.8'
+
+services:
+  frontend:
+    image: posh-notification-frontend:latest
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      args:
+        NEXT_PUBLIC_API_URL: ${BACKEND_URL:-https://posh.fontgenerator.club}
+    env_file:
+      - .env.production
+    environment:
+      NEXT_PUBLIC_API_URL: ${BACKEND_URL:-https://posh.fontgenerator.club}
+    ports:
+      - "3001:3001"

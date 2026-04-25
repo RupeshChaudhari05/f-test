@@ -1,0 +1,49 @@
+.posh-push-admin {
+  max-width: 900px;
+}
+
+.posh-version-badge {
+  margin-left: 8px;
+  font-size: 11px;
+  background: #2271b1;
+  color: #fff;
+  border-radius: 10px;
+  padding: 2px 8px;
+  vertical-align: middle;
+}
+
+.posh-tab-content {
+  background: #fff;
+  border: 1px solid #ccd0d4;
+  padding: 24px;
+  margin-top: -1px;
+}
+
+.posh-setup-steps {
+  counter-reset: steps;
+  list-style: none;
+  padding: 0;
+}
+
+.posh-setup-steps li {
+  counter-increment: steps;
+  display: flex;
+  align-items: flex-start;
+  gap: 16px;
+  margin-bottom: 20px;
+}
+
+.posh-setup-steps li::before {
+  content: counter(steps);
+  background: #2271b1;
+  color: #fff;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: bold;
+  flex-shrink: 0;
+  margin-top: 2px;
+}

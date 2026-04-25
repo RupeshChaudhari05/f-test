@@ -1,0 +1,38 @@
+# ── Dependencies ──────────────────────────────────────────────────────────────
+node_modules/
+
+# ── Build outputs ─────────────────────────────────────────────────────────────
+dist/
+.next/
+*.tsbuildinfo
+
+# ── Env files (never commit secrets) ──────────────────────────────────────────
+.env
+.env.local
+.env.production
+# Allow these templates
+!.env.example
+
+# ── Logs ──────────────────────────────────────────────────────────────────────
+*.log
+logs/
+
+# ── Local dev databases ───────────────────────────────────────────────────────
+*.sqlite
+database.sqlite
+
+# ── Docker volumes ────────────────────────────────────────────────────────────
+postgres_data/
+redis_data/
+
+# ── Generated JS from root scripts ────────────────────────────────────────────
+backend/check-db.js
+backend/check-db.js.map
+backend/check-db.d.ts
+backend/init-db.js
+
+# ── OS & editor ───────────────────────────────────────────────────────────────
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/settings.json

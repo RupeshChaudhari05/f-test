@@ -1,0 +1,94 @@
+name: CI/CD
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  test-backend:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_DB: posh_push_test
+          POSTGRES_USER: posh
+          POSTGRES_PASSWORD: testpass
+        ports: ['5432:5432']
+        options: --health-cmd pg_isready --health-interval 10s --health-timeout 5s --health-retries 5
+      redis:
+        image: redis:7-alpine
+        ports: ['6379:6379']
+        options: --health-cmd "redis-cli ping" --health-interval 10s --health-timeout 5s --health-retries 5
+
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: backend/package-lock.json
+
+      - run: cd backend && npm ci
+      - run: cd backend && npm run lint
+      - run: cd backend && npm run build
+      - run: cd backend && npm test
+        env:
+          DB_HOST: localhost
+          DB_PORT: 5432
+          DB_USERNAME: posh
+          DB_PASSWORD: testpass
+          DB_DATABASE: posh_push_test
+          REDIS_HOST: localhost
+          REDIS_PORT: 6379
+          JWT_SECRET: test-secret
+
+  test-frontend:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - run: cd frontend && npm ci
+      - run: cd frontend && npm run lint
+      - run: cd frontend && npm run build
+
+  build-sdk:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: sdk/package-lock.json
+
+      - run: cd sdk && npm ci
+      - run: cd sdk && npm run build
+
+  deploy:
+    needs: [test-backend, test-frontend, build-sdk]
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Deploy to server
+        env:
+          SSH_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
+          SERVER_HOST: ${{ secrets.SERVER_HOST }}
+          SERVER_USER: ${{ secrets.SERVER_USER }}
+        run: |
+          echo "Deploy step - configure with your deployment target"
+          echo "Options: Docker Compose on VPS, AWS ECS, Railway, Render, etc."
+          # Example: SSH deploy
+          # mkdir -p ~/.ssh
+          # echo "$SSH_KEY" > ~/.ssh/id_rsa
+          # chmod 600 ~/.ssh/id_rsa
+          # ssh -o StrictHostKeyChecking=no $SERVER_USER@$SERVER_HOST "cd /app && git pull && docker compose up -d --build"
