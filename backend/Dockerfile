@@ -21,7 +21,8 @@ FROM node:20-alpine
 WORKDIR /app
 
 COPY --from=builder /app/backend/dist ./dist
-COPY --from=builder /app/backend/node_modules ./node_modules
+# npm workspace hoists deps to root — copy from /app/node_modules
+COPY --from=builder /app/node_modules ./node_modules
 COPY --from=builder /app/backend/package.json ./
 # sdk-dist contains pre-built SDK files served via /sdk route
 COPY --from=builder /app/backend/sdk-dist ./sdk-dist
