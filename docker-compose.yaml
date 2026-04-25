@@ -62,7 +62,8 @@ services:
 
   frontend:
     build:
-      context: ./frontend
+      context: .
+      dockerfile: ./frontend/Dockerfile
       args:
         NEXT_PUBLIC_API_URL: ${BACKEND_URL:-https://posh.fontgenerator.club}
     restart: unless-stopped
