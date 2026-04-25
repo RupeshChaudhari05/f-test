@@ -1,31 +1,28 @@
+# ── Stage 1: Build ────────────────────────────────────────────────────────────
 FROM node:20-alpine AS builder
 WORKDIR /app
 
-# Copy workspace configuration (monorepo)
+# Build arg available at build time for Next.js static baking
 ARG NEXT_PUBLIC_API_URL
 ENV NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL
-COPY package.json package-lock.json ./
-COPY frontend/package.json ./frontend/
 
-# Install dependencies (workspace-aware)
-RUN npm ci
+# Copy frontend source (build context is repo root)
+COPY frontend/package.json ./
+RUN npm install
 
-# Copy frontend source
-COPY frontend/ ./frontend/
-
-# Build from frontend directory
-WORKDIR /app/frontend
+COPY frontend/ ./
 RUN npm run build
 
+# ── Stage 2: Production image ─────────────────────────────────────────────────
 FROM node:20-alpine
 WORKDIR /app
+
 ARG NEXT_PUBLIC_API_URL
 ENV NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL
-COPY --from=builder /app/frontend/.next ./.next
-COPY --from=builder /app/frontend/public ./public
-# npm workspace hoists deps to root — copy from /app/node_modules
+
+COPY --from=builder /app/.next ./.next
 COPY --from=builder /app/node_modules ./node_modules
-COPY --from=builder /app/frontend/package.json ./
-COPY --from=builder /app/frontend/next.config.js ./
+COPY --from=builder /app/package.json ./
+COPY --from=builder /app/next.config.js ./
 EXPOSE 3001
 CMD ["npm", "start"]
