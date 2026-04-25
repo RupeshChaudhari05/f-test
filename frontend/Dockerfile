@@ -1,16 +1,15 @@
 # ── Stage 1: Build ────────────────────────────────────────────────────────────
+# Build context is ./frontend (set in docker-compose.yaml)
 FROM node:20-alpine AS builder
 WORKDIR /app
 
-# Build arg available at build time for Next.js static baking
 ARG NEXT_PUBLIC_API_URL
 ENV NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL
 
-# Copy frontend source (build context is repo root)
-COPY frontend/package.json ./
-RUN npm install
+COPY package.json ./
+RUN npm install --no-audit --no-fund
 
-COPY frontend/ ./
+COPY . .
 RUN npm run build
 
 # ── Stage 2: Production image ─────────────────────────────────────────────────
