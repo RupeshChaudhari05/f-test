@@ -1,0 +1,41 @@
+{
+  "name": "posh-push-sdk",
+  "version": "1.0.0",
+  "type": "module",
+  "description": "Posh Push Notification SDK for websites",
+  "main": "dist/posh-push.js",
+  "module": "dist/posh-push.esm.js",
+  "types": "dist/posh-push.d.ts",
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "rollup -c",
+    "dev": "rollup -c -w",
+    "test": "jest",
+    "test:watch": "jest --watch"
+  },
+  "devDependencies": {
+    "@rollup/plugin-terser": "^0.4.4",
+    "@rollup/plugin-typescript": "^11.1.6",
+    "jest": "^29.7.0",
+    "jest-environment-jsdom": "^29.7.0",
+    "rollup": "^4.9.0",
+    "ts-jest": "^29.4.9",
+    "tslib": "^2.6.2",
+    "typescript": "^5.3.3"
+  },
+  "jest": {
+    "testEnvironment": "jsdom",
+    "testMatch": [
+      "**/__tests__/**/*.test.ts"
+    ],
+    "transform": {
+      "^.+\\.ts$": "ts-jest"
+    },
+    "moduleFileExtensions": [
+      "ts",
+      "js"
+    ]
+  }
+}
