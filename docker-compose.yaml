@@ -1,58 +1,25 @@
 version: '3.8'
 
 services:
-  postgres:
-    image: postgres:16-alpine
-    restart: unless-stopped
-    environment:
-      POSTGRES_DB: ${DB_NAME:-posh_notifications}
-      POSTGRES_USER: ${DB_USERNAME:-posh}
-      POSTGRES_PASSWORD: ${DB_PASSWORD:-posh_secret_2024}
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
-      - ./backend/database/schema.sql:/docker-entrypoint-initdb.d/01-schema.sql
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${DB_USERNAME:-posh} -d ${DB_NAME:-posh_notifications}"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-
-  redis:
-    image: redis:7-alpine
-    restart: unless-stopped
-    volumes:
-      - redis_data:/data
-    healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-
   backend:
     build:
       context: ./backend
       dockerfile: Dockerfile
     restart: unless-stopped
-    depends_on:
-      postgres:
-        condition: service_healthy
-      redis:
-        condition: service_healthy
     environment:
       NODE_ENV: production
       PORT: 3000
-      DB_HOST: ${DB_HOST:-postgres}
-      DB_PORT: ${DB_PORT:-5432}
-      DB_USERNAME: ${DB_USERNAME:-posh}
-      DB_PASSWORD: ${DB_PASSWORD:-posh_secret_2024}
-      DB_NAME: ${DB_NAME:-posh_notifications}
-      REDIS_HOST: ${REDIS_HOST:-redis}
+      DB_TYPE: sqlite
+      DB_DATABASE: /app/data/database.sqlite
+      REDIS_HOST: ${REDIS_HOST:-localhost}
       REDIS_PORT: ${REDIS_PORT:-6379}
       CORS_ORIGINS: ${CORS_ORIGINS:-https://posh.fontgenerator.club}
       JWT_SECRET: ${JWT_SECRET:-}
       VAPID_PUBLIC_KEY: ${VAPID_PUBLIC_KEY:-}
       VAPID_PRIVATE_KEY: ${VAPID_PRIVATE_KEY:-}
       VAPID_SUBJECT: ${VAPID_SUBJECT:-mailto:admin@posh.fontgenerator.club}
+    volumes:
+      - sqlite_data:/app/data
     ports:
       - "3000:3000"
 
@@ -71,5 +38,4 @@ services:
       - "3001:3001"
 
 volumes:
-  postgres_data:
-  redis_data:
+  sqlite_data:
