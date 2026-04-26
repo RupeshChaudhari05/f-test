@@ -1,7 +1,28 @@
 # Deployment Strategy — Posh Notification System
 
-> Domain: `posh.fontgenerator.club`
-> Architecture: Single VPS → Nginx → Backend (port 3000) + Frontend (port 3001)
+> **Frontend:** `https://posh.fontgenerator.club`
+> **Backend API:** `https://posh-api.fontgenerator.club`
+> **Architecture:** Single VPS → Nginx Reverse Proxy → Separate Containers
+
+---
+
+## Project Structure (what goes where)
+
+```
+Posh notifcation system/
+├── backend/          ← Deploy this (API + SDK files)
+│   ├── Dockerfile    ← Self-contained, no repo root needed
+│   └── sdk-dist/     ← Pre-built SDK files served via /sdk route
+├── frontend/         ← Deploy this (dashboard UI)
+│   └── Dockerfile    ← Uses NEXT_PUBLIC_API_URL build arg
+├── nginx/
+│   ├── nginx.conf    ← HTTPS reverse proxy with separate server blocks
+│   ├── ssl/          ← SSL certificates for both domains
+│   └── README.md     ← SSL setup instructions
+├── docker-compose.prod.yml    ← Production deployment (nginx + containers)
+├── docker-compose.yaml        ← Development setup
+└── .env.production            ← Production environment variables
+```
 
 ---
 
@@ -74,10 +95,15 @@ nano .env.production
 npm run configure:prod
 
 # Get SSL certificate (first time only)
-certbot certonly --standalone -d posh.fontgenerator.club
+certbot certonly --manual --preferred-challenges=dns -d "*.fontgenerator.club"
 mkdir -p nginx/ssl
-cp /etc/letsencrypt/live/posh.fontgenerator.club/fullchain.pem nginx/ssl/
-cp /etc/letsencrypt/live/posh.fontgenerator.club/privkey.pem nginx/ssl/
+cp /etc/letsencrypt/live/fontgenerator.club/fullchain.pem nginx/ssl/
+cp /etc/letsencrypt/live/fontgenerator.club/privkey.pem nginx/ssl/
+
+# Alternative: Multi-domain certificate
+# certbot certonly --manual --preferred-challenges=dns \
+#   -d posh.fontgenerator.club \
+#   -d posh-api.fontgenerator.club
 
 # Deploy
 docker compose up -d --build
@@ -89,11 +115,14 @@ docker compose up -d --build
 # Check all containers running
 docker compose ps
 
-# Check backend health
-curl https://posh.fontgenerator.club/health
+# Check backend API health
+curl https://posh-api.fontgenerator.club/health
 
-# Check frontend
+# Check frontend dashboard
 curl -I https://posh.fontgenerator.club
+
+# Test API endpoint
+curl https://posh-api.fontgenerator.club/api/v1/health
 ```
 
 ---

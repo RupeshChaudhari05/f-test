@@ -9,4 +9,4 @@
  * The API Key is set once inside WP Admin → Posh Push → Settings — no need to put it here.
  */
 
-define( 'POSH_PUSH_SERVER_URL', 'https://posh.fontgenerator.club' );
+define( 'POSH_PUSH_SERVER_URL', 'https://posh-api.fontgenerator.club' );
