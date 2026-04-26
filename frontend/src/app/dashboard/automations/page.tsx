@@ -4,6 +4,8 @@ import { useEffect, useState } from 'react';
 import { useStore } from '@/lib/store';
 import { getAutomations, createAutomation } from '@/lib/api';
 import { formatDateTime } from '@/lib/utils';
+import { DataTable } from '@/components/ui/data-table';
+import { Badge } from '@/components/ui/badge';
 import toast from 'react-hot-toast';
 
 interface Automation {
@@ -22,8 +24,11 @@ export default function AutomationsPage() {
 
   const [name, setName] = useState('');
   const [type, setType] = useState('welcome');
+  const [triggerEvent, setTriggerEvent] = useState('cart_abandoned');
   const [title, setTitle] = useState('');
   const [message, setMessage] = useState('');
+  const [iconUrl, setIconUrl] = useState('');
+  const [clickAction, setClickAction] = useState('');
   const [delayMinutes, setDelayMinutes] = useState(0);
 
   useEffect(() => {
@@ -41,7 +46,8 @@ export default function AutomationsPage() {
       await createAutomation(currentSite.id, {
         name,
         type,
-        notificationTemplate: { title, body: message },
+        ...(type === 'event_triggered' && { triggerConfig: { event: triggerEvent } }),
+        notificationTemplate: { title, body: message, iconUrl: iconUrl || undefined, clickAction: clickAction || undefined },
         delaySeconds: delayMinutes * 60,
       });
       toast.success('Automation created');
@@ -83,6 +89,26 @@ export default function AutomationsPage() {
                 <option value="event_triggered">Event Triggered</option>
               </select>
             </div>
+            {type === 'event_triggered' && (
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Trigger Event</label>
+                <select value={triggerEvent} onChange={(e) => setTriggerEvent(e.target.value)}
+                  className="w-full px-3 py-2 border rounded-lg text-sm">
+                  <option value="cart_abandoned">Cart Abandoned</option>
+                  <option value="purchase_completed">Purchase Completed</option>
+                  <option value="form_submitted">Form Submitted</option>
+                  <option value="page_visited">Page Visited</option>
+                </select>
+                {triggerEvent === 'cart_abandoned' && (
+                  <p className="mt-1 text-xs text-gray-500">
+                    Fires when a subscriber adds to cart but doesn't purchase within the delay window.
+                    Use <code className="bg-gray-100 px-1 rounded">{'{{product_name}}'}</code>,{' '}
+                    <code className="bg-gray-100 px-1 rounded">{'{{cart_total}}'}</code>,{' '}
+                    <code className="bg-gray-100 px-1 rounded">{'{{cart_url}}'}</code> in your message.
+                  </p>
+                )}
+              </div>
+            )}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Notification Title</label>
               <input type="text" value={title} onChange={(e) => setTitle(e.target.value)}
@@ -99,6 +125,18 @@ export default function AutomationsPage() {
             <textarea value={message} onChange={(e) => setMessage(e.target.value)}
               className="w-full px-3 py-2 border rounded-lg text-sm" rows={2} placeholder="Thanks for subscribing!" />
           </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Icon URL <span className="text-gray-400 font-normal">(optional)</span></label>
+              <input type="url" value={iconUrl} onChange={(e) => setIconUrl(e.target.value)}
+                className="w-full px-3 py-2 border rounded-lg text-sm" placeholder="https://your-site.com/icon.png" />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Click URL <span className="text-gray-400 font-normal">(optional)</span></label>
+              <input type="url" value={clickAction} onChange={(e) => setClickAction(e.target.value)}
+                className="w-full px-3 py-2 border rounded-lg text-sm" placeholder="{{cart_url}} or https://your-site.com" />
+            </div>
+          </div>
           <button onClick={handleCreate} disabled={!name || !title}
             className="px-6 py-2 bg-brand-600 text-white rounded-lg text-sm font-medium hover:bg-brand-700 disabled:opacity-50">
             Create Automation
@@ -106,40 +144,23 @@ export default function AutomationsPage() {
         </div>
       )}
 
-      <div className="bg-white rounded-xl border overflow-hidden">
-        <table className="w-full text-sm">
-          <thead className="bg-gray-50 border-b">
-            <tr>
-              <th className="text-left px-4 py-3 font-medium text-gray-500">Name</th>
-              <th className="text-left px-4 py-3 font-medium text-gray-500">Type</th>
-              <th className="text-left px-4 py-3 font-medium text-gray-500">Status</th>
-              <th className="text-left px-4 py-3 font-medium text-gray-500">Created</th>
-            </tr>
-          </thead>
-          <tbody>
-            {loading ? (
-              <tr><td colSpan={4} className="px-4 py-8 text-center text-gray-400">Loading...</td></tr>
-            ) : automations.length === 0 ? (
-              <tr><td colSpan={4} className="px-4 py-8 text-center text-gray-400">No automations yet</td></tr>
-            ) : (
-              automations.map((a) => (
-                <tr key={a.id} className="border-b last:border-0 hover:bg-gray-50">
-                  <td className="px-4 py-3 font-medium">{a.name}</td>
-                  <td className="px-4 py-3">
-                    <span className="px-2 py-0.5 bg-gray-100 rounded text-xs">{a.type}</span>
-                  </td>
-                  <td className="px-4 py-3">
-                    <span className={`px-2 py-0.5 rounded text-xs font-medium ${a.isActive ? 'bg-green-50 text-green-700' : 'bg-gray-100 text-gray-500'}`}>
-                      {a.isActive ? 'Active' : 'Paused'}
-                    </span>
-                  </td>
-                  <td className="px-4 py-3 text-gray-500">{formatDateTime(a.createdAt)}</td>
-                </tr>
-              ))
-            )}
-          </tbody>
-        </table>
-      </div>
+      <DataTable
+        columns={[
+          { key: 'name', header: 'Name', render: (a: any) => <span className="font-medium">{a.name}</span>, accessorFn: (a: any) => a.name },
+          { key: 'type', header: 'Type', render: (a: any) => <Badge variant="secondary" className="text-xs capitalize">{a.type.replace('_', ' ')}</Badge>, accessorFn: (a: any) => a.type },
+          {
+            key: 'isActive', header: 'Status',
+            render: (a: any) => <Badge variant={a.isActive ? 'success' : 'secondary'} className="text-xs">{a.isActive ? 'Active' : 'Paused'}</Badge>,
+            accessorFn: (a: any) => a.isActive ? 'active' : 'paused',
+          },
+          { key: 'createdAt', header: 'Created', render: (a: any) => <span className="text-xs text-muted-foreground">{formatDateTime(a.createdAt)}</span>, accessorFn: (a: any) => a.createdAt },
+        ] as any}
+        data={loading ? [] : automations}
+        rowKey={(a: any) => a.id}
+        searchable
+        searchPlaceholder="Search automations..."
+        emptyMessage={loading ? 'Loading...' : 'No automations yet'}
+      />
     </div>
   );
 }

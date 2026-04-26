@@ -327,4 +327,88 @@ export class AnalyticsService {
       ['siteId', 'date'],
     );
   }
+
+  /**
+   * Find carts that were abandoned (cart_item_added event with no purchase, not already notified).
+   * Compatible with SQLite, MySQL, and PostgreSQL — all filtering is done in memory.
+   *
+   * @param siteId               Site UUID.
+   * @param abandonAfterSeconds  Seconds of inactivity before a cart is considered abandoned.
+   */
+  async findAbandonedCarts(
+    siteId: string,
+    abandonAfterSeconds: number,
+  ): Promise<Array<{ subscriberId: string; cartId: string; cartData: Record<string, any>; cartEventAt: Date }>> {
+    const cutoffTime = new Date(Date.now() - abandonAfterSeconds * 1000);
+
+    // 1. Fetch all cart_item_added events older than the cutoff window
+    const cartEvents = await this.eventRepo.find({
+      where: { siteId, eventType: 'cart_item_added' },
+      order: { createdAt: 'DESC' },
+    });
+
+    const oldCartEvents = cartEvents.filter(
+      (e) => e.subscriberId && e.eventData?.cartId && e.createdAt <= cutoffTime,
+    );
+
+    if (oldCartEvents.length === 0) return [];
+
+    // 2. Fetch recent purchase_completed events (look back 2× the abandon window)
+    const lookbackTime = new Date(Date.now() - abandonAfterSeconds * 2 * 1000);
+    const purchaseEvents = await this.eventRepo.find({
+      where: { siteId, eventType: 'purchase_completed' },
+    });
+
+    const purchasedSubscriberIds = new Set(
+      purchaseEvents
+        .filter((e) => e.subscriberId && e.createdAt >= lookbackTime)
+        .map((e) => e.subscriberId),
+    );
+
+    // 3. Fetch cart_abandonment_notified markers (avoids duplicate notifications)
+    const notifiedEvents = await this.eventRepo.find({
+      where: { siteId, eventType: 'cart_abandonment_notified' },
+    });
+
+    const notifiedCartIds = new Set(
+      notifiedEvents.map((e) => e.eventData?.cartId).filter(Boolean),
+    );
+
+    // 4. Deduplicate by subscriber+cartId; keep the most recent event per cart
+    const cartMap = new Map<string, typeof oldCartEvents[0]>();
+    for (const event of oldCartEvents) {
+      const key = `${event.subscriberId}_${event.eventData.cartId}`;
+      if (!cartMap.has(key)) {
+        cartMap.set(key, event);
+      }
+    }
+
+    // 5. Filter out purchased or already-notified carts
+    const result: Array<{ subscriberId: string; cartId: string; cartData: Record<string, any>; cartEventAt: Date }> = [];
+
+    for (const [, event] of cartMap) {
+      if (purchasedSubscriberIds.has(event.subscriberId)) continue;
+      if (notifiedCartIds.has(event.eventData.cartId)) continue;
+
+      result.push({
+        subscriberId: event.subscriberId,
+        cartId: event.eventData.cartId,
+        cartData: event.eventData,
+        cartEventAt: event.createdAt,
+      });
+    }
+
+    return result;
+  }
+
+  /**
+   * Persist a cart_abandonment_notified marker so the same cart is not messaged twice.
+   */
+  async markCartAbandoned(siteId: string, subscriberId: string, cartId: string): Promise<void> {
+    await this.trackEvent(siteId, {
+      subscriberId,
+      eventType: 'cart_abandonment_notified',
+      eventData: { cartId, notifiedAt: new Date().toISOString() },
+    });
+  }
 }

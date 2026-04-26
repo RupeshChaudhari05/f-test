@@ -222,6 +222,75 @@ export class NotificationsService {
     await this.updateNotificationCounts(notificationId);
   }
 
+  /**
+   * Send a notification directly to a single subscriber.
+   * Used by automations (cart abandonment, drip, etc.) without requiring a broadcast.
+   */
+  async sendToSubscriberDirect(
+    siteId: string,
+    subscriberId: string,
+    template: {
+      title: string;
+      message: string;
+      iconUrl?: string;
+      imageUrl?: string;
+      clickAction?: string;
+      data?: Record<string, any>;
+    },
+  ): Promise<void> {
+    const site = await this.siteRepo
+      .createQueryBuilder('site')
+      .addSelect('site.vapidPrivateKey')
+      .where('site.id = :id', { id: siteId })
+      .getOne();
+
+    if (!site) {
+      this.logger.warn(`sendToSubscriberDirect: site ${siteId} not found`);
+      return;
+    }
+
+    const subscriber = await this.subRepo.findOne({
+      where: { id: subscriberId, siteId, isActive: true },
+    });
+
+    if (!subscriber) {
+      this.logger.warn(`sendToSubscriberDirect: subscriber ${subscriberId} not found or inactive`);
+      return;
+    }
+
+    const notification = this.notifRepo.create({
+      siteId,
+      title: template.title,
+      message: template.message,
+      iconUrl: template.iconUrl,
+      imageUrl: template.imageUrl,
+      clickAction: template.clickAction,
+      data: template.data || {},
+      targetType: TargetType.INDIVIDUAL,
+      targetConfig: { subscriberIds: [subscriberId] },
+      status: NotificationStatus.SENDING,
+    });
+
+    const saved = await this.notifRepo.save(notification);
+
+    try {
+      const result = await this.pushService.sendToSubscriber(site, subscriber, saved);
+      saved.status = NotificationStatus.SENT;
+      saved.sentAt = new Date();
+      saved.totalSent = result.success ? 1 : 0;
+      saved.totalFailed = result.success ? 0 : 1;
+      await this.notifRepo.save(saved);
+
+      this.logger.log(
+        `Direct notification sent to subscriber ${subscriberId}: ${result.success ? 'success' : result.error}`,
+      );
+    } catch (err: any) {
+      saved.status = NotificationStatus.FAILED;
+      await this.notifRepo.save(saved);
+      this.logger.error(`Direct notification failed for subscriber ${subscriberId}: ${err.message}`);
+    }
+  }
+
   async createDeliveryRecords(notificationId: string, subscriberIds: string[]) {
     const records = subscriberIds.map((subscriberId) => ({
       notificationId,
