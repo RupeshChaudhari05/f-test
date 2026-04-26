@@ -39,6 +39,10 @@ services:
       CORS_ORIGINS: ${CORS_ORIGINS}
       THROTTLE_TTL: 60
       THROTTLE_LIMIT: 100
+      # First-run: set to 'true' to auto-create MySQL tables, then remove it
+      DB_SYNC: ${DB_SYNC:-false}
+      SUPER_ADMIN_EMAIL: ${SUPER_ADMIN_EMAIL:-admin@posh.fontgenerator.club}
+      SUPER_ADMIN_PASSWORD: ${SUPER_ADMIN_PASSWORD:-Admin@Posh2026!}
     ports:
       - "3000:3000"
 

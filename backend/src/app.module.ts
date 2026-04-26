@@ -45,9 +45,11 @@ import { BackupModule } from './modules/backup/backup.module';
         const dbType = config.get<string>('DB_TYPE', 'mysql') as 'postgres' | 'mysql' | 'sqlite';
         const isDev = config.get<string>('NODE_ENV') === 'development';
 
+        // DB_SYNC=true forces table creation on first deploy (set once, then remove)
+        const forceSync = config.get<string>('DB_SYNC') === 'true';
         const baseConfig = {
           entities: [__dirname + '/**/*.entity{.ts,.js}'],
-          synchronize: isDev,
+          synchronize: isDev || forceSync,
           logging: isDev,
         };
 

@@ -40,12 +40,13 @@ export async function seed() {
   const userRepo = AppDataSource.getRepository(User);
 
   try {
-    // 1. Create Super Admin User (main)
-    const superAdminEmail = 'admin@posh.local';
+    // 1. Create Super Admin User (reads from env vars set in docker-compose.yaml)
+    const superAdminEmail = process.env.SUPER_ADMIN_EMAIL || 'admin@posh.fontgenerator.club';
+    const superAdminPassword = process.env.SUPER_ADMIN_PASSWORD || 'Admin@Posh2026!';
     let superAdmin = await userRepo.findOne({ where: { email: superAdminEmail } });
 
     if (!superAdmin) {
-      const hashedPassword = await bcrypt.hash('Admin@123', 10);
+      const hashedPassword = await bcrypt.hash(superAdminPassword, 10);
       const userData = {
         email: superAdminEmail,
         name: 'Super Admin',

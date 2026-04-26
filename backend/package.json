@@ -10,6 +10,8 @@
     "start:dev": "nest start --watch",
     "start:debug": "nest start --debug --watch",
     "start:prod": "node dist/main",
+    "start:prod:seed": "node dist/main && node -r ts-node/register src/database/seed.ts",
+    "seed:prod": "node -e \"require('./dist/database/seed').seed().then(() => process.exit(0)).catch(e => { console.error(e); process.exit(1); })\"",
     "lint": "eslint \"{src,test}/**/*.ts\" --fix",
     "test": "jest",
     "test:watch": "jest --watch",

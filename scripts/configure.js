@@ -108,6 +108,9 @@ THROTTLE_LIMIT=${get('THROTTLE_LIMIT', '100')}
 SUPER_ADMIN_EMAIL=${get('SUPER_ADMIN_EMAIL', 'admin@poshnotify.com')}
 SUPER_ADMIN_PASSWORD=${get('SUPER_ADMIN_PASSWORD', 'Admin@123456')}
 
+# DB_SYNC — set to 'true' on first deploy to auto-create MySQL tables, then set to 'false'
+DB_SYNC=${get('DB_SYNC', 'false')}
+
 # Frontend URL (used in emails / links)
 FRONTEND_URL=${FRONTEND_URL}
 
