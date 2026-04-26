@@ -5,13 +5,14 @@ import { useStore } from '@/lib/store';
 import { getNotifications, createNotification, sendNotification } from '@/lib/api';
 import { formatDateTime } from '@/lib/utils';
 import toast from 'react-hot-toast';
-import { Send, Plus, Eye, Link as LinkIcon, Image, X } from 'lucide-react';
+import { Send, Plus, X } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
+import { DataTable } from '@/components/ui/data-table';
 
 interface NotificationItem {
   id: string;
@@ -192,61 +193,62 @@ export default function NotificationsPage() {
 
       {/* Notifications Table */}
       <Card>
+        <CardHeader className="pb-2">
+          <CardTitle className="text-base">All Campaigns</CardTitle>
+          <CardDescription>Click any column to sort. Search by title or status.</CardDescription>
+        </CardHeader>
         <CardContent className="p-0">
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead className="bg-muted/50 border-b">
-                <tr>
-                  <th className="text-left px-4 py-3 font-medium text-muted-foreground">Notification</th>
-                  <th className="text-left px-4 py-3 font-medium text-muted-foreground">Status</th>
-                  <th className="text-right px-4 py-3 font-medium text-muted-foreground">Sent</th>
-                  <th className="text-right px-4 py-3 font-medium text-muted-foreground">Delivered</th>
-                  <th className="text-right px-4 py-3 font-medium text-muted-foreground">Clicked</th>
-                  <th className="text-right px-4 py-3 font-medium text-muted-foreground">Failed</th>
-                  <th className="text-right px-4 py-3 font-medium text-muted-foreground">CTR</th>
-                  <th className="text-left px-4 py-3 font-medium text-muted-foreground">Date</th>
-                </tr>
-              </thead>
-              <tbody>
-                {loading ? (
-                  <tr><td colSpan={8} className="px-4 py-12 text-center text-muted-foreground">
-                    <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary mx-auto mb-2" />
-                    Loading...
-                  </td></tr>
-                ) : notifications.length === 0 ? (
-                  <tr><td colSpan={8} className="px-4 py-12 text-center text-muted-foreground">
-                    <Send className="h-8 w-8 mx-auto mb-2 opacity-50" />
-                    No notifications yet. Create your first one!
-                  </td></tr>
-                ) : (
-                  notifications.map((n) => {
-                    const ctr = n.totalDelivered > 0 ? ((n.totalClicked / n.totalDelivered) * 100).toFixed(1) : '0.0';
-                    return (
-                      <tr key={n.id} className="border-b last:border-0 hover:bg-muted/30 transition">
-                        <td className="px-4 py-3">
-                          <div className="font-medium">{n.title}</div>
-                          {n.message && <div className="text-xs text-muted-foreground truncate max-w-xs">{n.message}</div>}
-                        </td>
-                        <td className="px-4 py-3">
-                          <Badge variant={statusVariant[n.status] || 'secondary'}>{n.status}</Badge>
-                        </td>
-                        <td className="px-4 py-3 text-right font-medium">{n.totalSent || 0}</td>
-                        <td className="px-4 py-3 text-right font-medium">{n.totalDelivered || 0}</td>
-                        <td className="px-4 py-3 text-right font-medium">{n.totalClicked || 0}</td>
-                        <td className="px-4 py-3 text-right">
-                          <span className={`font-medium ${n.totalFailed > 0 ? 'text-destructive' : 'text-muted-foreground'}`}>{n.totalFailed || 0}</span>
-                        </td>
-                        <td className="px-4 py-3 text-right">
-                          <span className={`font-medium ${parseFloat(ctr) > 5 ? 'text-green-600' : ''}`}>{ctr}%</span>
-                        </td>
-                        <td className="px-4 py-3 text-muted-foreground text-xs">{formatDateTime(n.sentAt || n.createdAt)}</td>
-                      </tr>
-                    );
-                  })
-                )}
-              </tbody>
-            </table>
-          </div>
+          {loading ? (
+            <div className="flex justify-center py-12">
+              <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary" />
+            </div>
+          ) : (
+            <DataTable
+              columns={[
+                {
+                  key: 'title', header: 'Notification',
+                  render: (n: NotificationItem) => (
+                    <div>
+                      <div className="font-medium">{n.title}</div>
+                      {n.message && <div className="text-xs text-muted-foreground truncate max-w-xs">{n.message}</div>}
+                    </div>
+                  ),
+                  accessorFn: (n: NotificationItem) => n.title,
+                },
+                {
+                  key: 'status', header: 'Status',
+                  render: (n: NotificationItem) => <Badge variant={statusVariant[n.status] || 'secondary'}>{n.status}</Badge>,
+                  accessorFn: (n: NotificationItem) => n.status,
+                },
+                { key: 'totalSent', header: 'Sent', render: (n: NotificationItem) => (n.totalSent || 0).toLocaleString(), accessorFn: (n: NotificationItem) => n.totalSent },
+                { key: 'totalDelivered', header: 'Delivered', render: (n: NotificationItem) => (n.totalDelivered || 0).toLocaleString(), accessorFn: (n: NotificationItem) => n.totalDelivered },
+                { key: 'totalClicked', header: 'Clicked', render: (n: NotificationItem) => (n.totalClicked || 0).toLocaleString(), accessorFn: (n: NotificationItem) => n.totalClicked },
+                {
+                  key: 'ctr', header: 'CTR',
+                  render: (n: NotificationItem) => {
+                    const ctr = n.totalDelivered > 0 ? ((n.totalClicked / n.totalDelivered) * 100) : 0;
+                    return <span className={`font-medium ${ctr > 5 ? 'text-green-600' : ctr > 2 ? 'text-amber-600' : 'text-muted-foreground'}`}>{ctr.toFixed(1)}%</span>;
+                  },
+                  accessorFn: (n: NotificationItem) => n.totalDelivered > 0 ? (n.totalClicked / n.totalDelivered) * 100 : 0,
+                },
+                {
+                  key: 'totalFailed', header: 'Failed',
+                  render: (n: NotificationItem) => <span className={n.totalFailed > 0 ? 'text-destructive font-medium' : 'text-muted-foreground'}>{n.totalFailed || 0}</span>,
+                  accessorFn: (n: NotificationItem) => n.totalFailed,
+                },
+                {
+                  key: 'sentAt', header: 'Date',
+                  render: (n: NotificationItem) => <span className="text-xs text-muted-foreground">{formatDateTime(n.sentAt || n.createdAt)}</span>,
+                  accessorFn: (n: NotificationItem) => n.sentAt || n.createdAt,
+                },
+              ] as any}
+              data={notifications}
+              rowKey={(n: any) => n.id}
+              searchable
+              searchPlaceholder="Search notifications..."
+              emptyMessage="No notifications yet. Create your first campaign!"
+            />
+          )}
         </CardContent>
       </Card>
     </div>

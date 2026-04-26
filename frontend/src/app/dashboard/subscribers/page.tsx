@@ -4,11 +4,11 @@ import { useEffect, useState } from 'react';
 import { useStore } from '@/lib/store';
 import { getSubscribers } from '@/lib/api';
 import { formatDateTime } from '@/lib/utils';
-import { Users, Search } from 'lucide-react';
+import { Users } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
+import { DataTable } from '@/components/ui/data-table';
 
 interface Subscriber {
   id: string;
@@ -74,76 +74,53 @@ export default function SubscribersPage() {
             {total > 0 ? `${total} total subscriber${total !== 1 ? 's' : ''}` : 'Manage your push notification subscribers'}
           </p>
         </div>
-        <div className="relative">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input
-            placeholder="Search by browser, OS, country..."
-            value={search}
-            onChange={(e) => { setSearch(e.target.value); setPage(1); }}
-            className="pl-9 w-72"
-          />
-        </div>
       </div>
 
       <Card>
+        <CardHeader className="pb-2">
+          <CardTitle className="text-base">All Subscribers</CardTitle>
+          <CardDescription>Click any column to sort. Search by browser, OS, country, or tags.</CardDescription>
+        </CardHeader>
         <CardContent className="p-0">
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead className="bg-muted/50 border-b">
-                <tr>
-                  <th className="text-left px-4 py-3 font-medium text-muted-foreground">Browser / OS</th>
-                  <th className="text-left px-4 py-3 font-medium text-muted-foreground">Device</th>
-                  <th className="text-left px-4 py-3 font-medium text-muted-foreground">Location</th>
-                  <th className="text-left px-4 py-3 font-medium text-muted-foreground">Language</th>
-                  <th className="text-left px-4 py-3 font-medium text-muted-foreground">Tags</th>
-                  <th className="text-left px-4 py-3 font-medium text-muted-foreground">Status</th>
-                  <th className="text-left px-4 py-3 font-medium text-muted-foreground">Subscribed</th>
-                </tr>
-              </thead>
-              <tbody>
-                {loading ? (
-                  <tr><td colSpan={7} className="px-4 py-12 text-center text-muted-foreground">
-                    <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary mx-auto mb-2" />
-                    Loading...
-                  </td></tr>
-                ) : subscribers.length === 0 ? (
-                  <tr><td colSpan={7} className="px-4 py-12 text-center text-muted-foreground">
-                    <Users className="h-8 w-8 mx-auto mb-2 opacity-50" />
-                    <p className="font-medium">No subscribers yet</p>
-                    <p className="text-xs mt-1">Visitors who allow notifications on your WordPress site will appear here.</p>
-                  </td></tr>
-                ) : (
-                  subscribers.map((sub) => (
-                    <tr key={sub.id} className="border-b last:border-0 hover:bg-muted/30 transition">
-                      <td className="px-4 py-3">
-                        <div className="font-medium">{sub.browser || '—'} {sub.browserVersion || ''}</div>
-                        <div className="text-xs text-muted-foreground">{sub.os || ''} {sub.osVersion || ''}</div>
-                      </td>
-                      <td className="px-4 py-3 capitalize">{sub.deviceType || '—'}</td>
-                      <td className="px-4 py-3">{[sub.city, sub.country].filter(Boolean).join(', ') || '—'}</td>
-                      <td className="px-4 py-3 text-xs text-muted-foreground">{sub.language || '—'}</td>
-                      <td className="px-4 py-3">
-                        <div className="flex flex-wrap gap-1">
-                          {(sub.tags || []).length > 0
-                            ? sub.tags.map((tag) => (
-                                <Badge key={tag} variant="secondary" className="text-xs">{tag}</Badge>
-                              ))
-                            : <span className="text-muted-foreground text-xs">—</span>
-                          }
-                        </div>
-                      </td>
-                      <td className="px-4 py-3">
-                        <Badge variant={sub.isActive ? 'success' : 'secondary'}>
-                          {sub.isActive ? 'Active' : 'Unsubscribed'}
-                        </Badge>
-                      </td>
-                      <td className="px-4 py-3 text-muted-foreground text-xs">{formatDateTime(sub.createdAt)}</td>
-                    </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
-          </div>
+          <DataTable
+            columns={[
+              {
+                key: 'browser', header: 'Browser / OS',
+                render: (sub: Subscriber) => (
+                  <div>
+                    <div className="font-medium">{sub.browser || '—'} {sub.browserVersion || ''}</div>
+                    <div className="text-xs text-muted-foreground">{sub.os || ''} {sub.osVersion || ''}</div>
+                  </div>
+                ),
+                accessorFn: (sub: Subscriber) => `${sub.browser} ${sub.os}`,
+              },
+              { key: 'deviceType', header: 'Device', render: (sub: Subscriber) => <span className="capitalize">{sub.deviceType || '—'}</span>, accessorFn: (sub: Subscriber) => sub.deviceType },
+              { key: 'country', header: 'Location', render: (sub: Subscriber) => [sub.city, sub.country].filter(Boolean).join(', ') || '—', accessorFn: (sub: Subscriber) => `${sub.city ?? ''} ${sub.country ?? ''}` },
+              { key: 'language', header: 'Language', render: (sub: Subscriber) => <span className="text-xs text-muted-foreground">{sub.language || '—'}</span>, accessorFn: (sub: Subscriber) => sub.language },
+              {
+                key: 'tags', header: 'Tags',
+                render: (sub: Subscriber) => (
+                  <div className="flex flex-wrap gap-1">
+                    {(sub.tags || []).length > 0
+                      ? sub.tags.map((tag) => <Badge key={tag} variant="secondary" className="text-xs">{tag}</Badge>)
+                      : <span className="text-muted-foreground text-xs">—</span>}
+                  </div>
+                ),
+                accessorFn: (sub: Subscriber) => (sub.tags || []).join(' '),
+              },
+              {
+                key: 'isActive', header: 'Status',
+                render: (sub: Subscriber) => <Badge variant={sub.isActive ? 'success' : 'secondary'}>{sub.isActive ? 'Active' : 'Unsubscribed'}</Badge>,
+                accessorFn: (sub: Subscriber) => sub.isActive ? 'active' : 'unsubscribed',
+              },
+              { key: 'createdAt', header: 'Subscribed', render: (sub: Subscriber) => <span className="text-xs text-muted-foreground">{formatDateTime(sub.createdAt)}</span>, accessorFn: (sub: Subscriber) => sub.createdAt },
+            ] as any}
+            data={loading ? [] : subscribers}
+            rowKey={(sub: any) => sub.id}
+            searchable
+            searchPlaceholder="Search by browser, OS, country, tags..."
+            emptyMessage={loading ? 'Loading...' : 'No subscribers yet. Visitors who allow notifications will appear here.'}
+          />
         </CardContent>
       </Card>
 

@@ -1,25 +1,64 @@
 version: '3.8'
 
 services:
+  # Using external MySQL database - no database service needed
+  # Database credentials configured in .env.production
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
   backend:
     build:
       context: ./backend
       dockerfile: Dockerfile
     restart: unless-stopped
+    depends_on:
+      redis:
+        condition: service_healthy
     environment:
       NODE_ENV: production
       PORT: 3000
-      DB_TYPE: sqlite
-      DB_DATABASE: /app/data/database.sqlite
-      REDIS_HOST: ${REDIS_HOST:-localhost}
-      REDIS_PORT: ${REDIS_PORT:-6379}
+      DB_HOST: ${DB_HOST}
+      DB_PORT: ${DB_PORT}
+      DB_USERNAME: ${DB_USERNAME}
+      DB_PASSWORD: ${DB_PASSWORD}
+      DB_NAME: ${DB_NAME}
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      JWT_SECRET: ${JWT_SECRET}
+      VAPID_PUBLIC_KEY: ${VAPID_PUBLIC_KEY}
+      VAPID_PRIVATE_KEY: ${VAPID_PRIVATE_KEY}
+      VAPID_SUBJECT: ${VAPID_SUBJECT}
+    ports:
+      - "3000:3000"
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    depends_on:
+      - backend
+    environment:
+      NEXT_PUBLIC_API_URL: ${BACKEND_URL}
+    ports:
+      - "3001:3001"
+
+volumes:
+  redis_data:
       CORS_ORIGINS: ${CORS_ORIGINS:-https://posh.fontgenerator.club}
       JWT_SECRET: ${JWT_SECRET:-}
       VAPID_PUBLIC_KEY: ${VAPID_PUBLIC_KEY:-}
       VAPID_PRIVATE_KEY: ${VAPID_PRIVATE_KEY:-}
       VAPID_SUBJECT: ${VAPID_SUBJECT:-mailto:admin@posh.fontgenerator.club}
-    volumes:
-      - sqlite_data:/app/data
     ports:
       - "3000:3000"
 
@@ -38,4 +77,5 @@ services:
       - "3001:3001"
 
 volumes:
-  sqlite_data:
+  postgres_data:
+  redis_data:

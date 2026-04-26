@@ -1,13 +1,17 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, NotFoundException, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 // import { InjectQueue } from '@nestjs/bullmq';
 // import { Queue } from 'bullmq';
 import { Automation, AutomationType, DripStep, DripEnrollment } from './automation.entity';
 import { CreateAutomationDto } from './dto/create-automation.dto';
+import { NotificationsService } from '../notifications/notifications.service';
+import { Subscriber } from '../subscribers/subscriber.entity';
 
 @Injectable()
 export class AutomationsService {
+  private readonly logger = new Logger(AutomationsService.name);
+
   constructor(
     @InjectRepository(Automation)
     private readonly automationRepo: Repository<Automation>,
@@ -15,6 +19,9 @@ export class AutomationsService {
     private readonly dripStepRepo: Repository<DripStep>,
     @InjectRepository(DripEnrollment)
     private readonly enrollmentRepo: Repository<DripEnrollment>,
+    @InjectRepository(Subscriber)
+    private readonly subscriberRepo: Repository<Subscriber>,
+    private readonly notificationsService: NotificationsService,
     // @InjectQueue('automations')
     // private readonly automationQueue: Queue,
   ) { }
@@ -127,6 +134,106 @@ export class AutomationsService {
   /** Trigger a generic automation payload. This is a placeholder until the notification engine is fully implemented. */
   private async triggerAutomation(automation: Automation, payload: Record<string, any>): Promise<void> {
     console.log(`Triggering automation ${automation.id} with payload:`, payload);
+  }
+
+  /**
+   * Replace {{token}} placeholders in a template string with values from data.
+   * Unknown tokens are left as-is.
+   */
+  private applyTokens(template: string, data: Record<string, any>): string {
+    return template.replace(/\{\{(\w+)\}\}/g, (_match, key: string) =>
+      data[key] !== undefined ? String(data[key]) : `{{${key}}}`,
+    );
+  }
+
+  /**
+   * Process all EVENT_TRIGGERED automations whose triggerConfig.event === 'cart_abandoned'
+   * for a specific subscriber and cart payload.
+   *
+   * @param siteId       Site UUID.
+   * @param subscriberId Subscriber UUID.
+   * @param cartData     eventData from the original cart_item_added event.
+   */
+  async triggerCartAbandonment(
+    siteId: string,
+    subscriberId: string,
+    cartData: Record<string, any>,
+  ): Promise<void> {
+    // Find all active event-triggered automations for this site
+    const automations = await this.automationRepo.find({
+      where: { siteId, type: AutomationType.EVENT_TRIGGERED, isActive: true },
+    });
+
+    // Only those whose trigger event is cart_abandoned
+    const cartAutomations = automations.filter(
+      (a) => a.triggerConfig?.event === 'cart_abandoned',
+    );
+
+    if (cartAutomations.length === 0) {
+      this.logger.debug(`No cart_abandoned automations configured for site ${siteId}`);
+      return;
+    }
+
+    // Load subscriber for personalization tokens
+    const subscriber = await this.subscriberRepo.findOne({
+      where: { id: subscriberId, siteId },
+    });
+
+    if (!subscriber) {
+      this.logger.warn(`triggerCartAbandonment: subscriber ${subscriberId} not found`);
+      return;
+    }
+
+    for (const automation of cartAutomations) {
+      try {
+        const tmpl = automation.notificationTemplate;
+
+        // Merge subscriber custom data + cart data for token replacement
+        const personalizationData: Record<string, any> = {
+          ...subscriber.customData,
+          ...cartData,
+          // Convenience aliases
+          product_name: cartData.productName ?? cartData.product_name ?? '',
+          product_image: cartData.productImage ?? cartData.product_image ?? '',
+          cart_total: cartData.cartTotal ?? cartData.cart_total ?? '',
+          cart_url: cartData.cartUrl ?? cartData.cart_url ?? '',
+        };
+
+        const title = this.applyTokens(
+          tmpl.title || 'Your cart is waiting! 🛍️',
+          personalizationData,
+        );
+        const message = this.applyTokens(
+          tmpl.message || tmpl.body || 'Complete your purchase and get 10% off!',
+          personalizationData,
+        );
+
+        await this.notificationsService.sendToSubscriberDirect(siteId, subscriberId, {
+          title,
+          message,
+          iconUrl: tmpl.iconUrl,
+          imageUrl: cartData.productImage || cartData.product_image || tmpl.imageUrl,
+          clickAction: cartData.cartUrl || cartData.cart_url || tmpl.clickAction,
+          data: {
+            cartId: cartData.cartId,
+            source: 'cart_abandonment',
+            automationId: automation.id,
+          },
+        });
+
+        automation.lastTriggeredAt = new Date();
+        automation.totalTriggered += 1;
+        await this.automationRepo.save(automation);
+
+        this.logger.log(
+          `Cart abandonment notification sent for subscriber ${subscriberId} via automation ${automation.id}`,
+        );
+      } catch (error: any) {
+        this.logger.error(
+          `Cart abandonment automation ${automation.id} failed for subscriber ${subscriberId}: ${error.message}`,
+        );
+      }
+    }
   }
 
   async enrollInDrip(automationId: string, subscriberId: string) {

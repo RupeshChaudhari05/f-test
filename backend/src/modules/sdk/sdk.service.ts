@@ -108,6 +108,17 @@ export class SdkService {
       await this.subscribersService.updateLastSeen(data.subscriberId);
     }
 
+    // When the client explicitly fires cart_abandoned (e.g. browser-side inactivity timer),
+    // immediately look for matching automations and send the notification.
+    if (data.eventType === 'cart_abandoned' && data.subscriberId) {
+      // Run async — do not block the HTTP response
+      this.automationsService
+        .triggerCartAbandonment(site.id, data.subscriberId, data.eventData || {})
+        .catch((err) =>
+          console.error(`cart_abandoned automation failed for subscriber ${data.subscriberId}: ${err.message}`),
+        );
+    }
+
     return { status: 'tracked' };
   }
 
