@@ -22,6 +22,7 @@ services:
     environment:
       NODE_ENV: production
       PORT: 3000
+      API_PREFIX: api/v1
       DB_TYPE: mysql
       DB_HOST: ${DB_HOST}
       DB_PORT: ${DB_PORT}
@@ -31,10 +32,13 @@ services:
       REDIS_HOST: redis
       REDIS_PORT: 6379
       JWT_SECRET: ${JWT_SECRET}
+      JWT_EXPIRATION: 7d
       VAPID_PUBLIC_KEY: ${VAPID_PUBLIC_KEY}
       VAPID_PRIVATE_KEY: ${VAPID_PRIVATE_KEY}
       VAPID_SUBJECT: ${VAPID_SUBJECT}
       CORS_ORIGINS: ${CORS_ORIGINS}
+      THROTTLE_TTL: 60
+      THROTTLE_LIMIT: 100
     ports:
       - "3000:3000"
 
@@ -46,6 +50,9 @@ services:
     depends_on:
       - backend
     environment:
+      # Read at runtime by Next.js rewrites in next.config.js
+      # Routes /api/* from browser → backend container internally
+      BACKEND_INTERNAL_URL: http://backend:3000
       NEXT_PUBLIC_API_URL: ${BACKEND_URL}
     ports:
       - "3001:3001"
