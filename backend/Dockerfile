@@ -3,8 +3,8 @@
 FROM node:20-alpine AS builder
 WORKDIR /app
 
-ARG NODE_ENV=development
-ENV NODE_ENV=$NODE_ENV
+# Force development mode for build — do NOT accept NODE_ENV from build args
+ENV NODE_ENV=development
 
 COPY package.json ./
 RUN npm install --no-audit --no-fund
