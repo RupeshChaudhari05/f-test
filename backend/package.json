@@ -4,7 +4,7 @@
   "description": "Posh Notification System - Backend",
   "private": true,
   "scripts": {
-    "build": "nest build",
+    "build": "npx nest build",
     "format": "prettier --write \"src/**/*.ts\"",
     "start": "nest start dist/src/main",
     "start:dev": "nest start --watch",
