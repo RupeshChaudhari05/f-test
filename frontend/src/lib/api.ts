@@ -1,4 +1,4 @@
-import axios from 'axios';
+import axios, { AxiosRequestConfig, AxiosResponse, AxiosError } from 'axios';
 
 // Always call the backend API directly.
 // NEXT_PUBLIC_API_URL is baked at Docker build time → https://posh-api.fontgenerator.club
@@ -9,7 +9,7 @@ const api = axios.create({
   headers: { 'Content-Type': 'application/json' },
 });
 
-api.interceptors.request.use((config) => {
+api.interceptors.request.use((config: AxiosRequestConfig) => {
   if (typeof window !== 'undefined') {
     const token = localStorage.getItem('posh_token');
     if (token) {
@@ -20,8 +20,8 @@ api.interceptors.request.use((config) => {
 });
 
 api.interceptors.response.use(
-  (res) => res,
-  (error) => {
+  (res: AxiosResponse) => res,
+  (error: AxiosError) => {
     if (error.response?.status === 401 && typeof window !== 'undefined') {
       localStorage.removeItem('posh_token');
       window.location.href = '/login';
