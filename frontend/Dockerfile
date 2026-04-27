@@ -5,7 +5,9 @@ WORKDIR /app
 
 # NEXT_PUBLIC_API_URL must be baked at build time so the browser bundle
 # knows the backend URL (https://posh-api.fontgenerator.club).
+ARG NODE_ENV=development
 ARG NEXT_PUBLIC_API_URL=https://posh-api.fontgenerator.club
+ENV NODE_ENV=$NODE_ENV
 ENV NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL
 
 COPY package.json ./
@@ -18,7 +20,9 @@ RUN npm run build
 FROM node:20-alpine
 WORKDIR /app
 
+ARG NODE_ENV=production
 ARG NEXT_PUBLIC_API_URL=https://posh-api.fontgenerator.club
+ENV NODE_ENV=$NODE_ENV
 ENV NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL
 
 COPY --from=builder /app/.next ./.next

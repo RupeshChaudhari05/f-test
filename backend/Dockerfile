@@ -3,6 +3,9 @@
 FROM node:20-alpine AS builder
 WORKDIR /app
 
+ARG NODE_ENV=development
+ENV NODE_ENV=$NODE_ENV
+
 COPY package.json ./
 RUN npm install --no-audit --no-fund
 
@@ -12,6 +15,9 @@ RUN npm run build
 # ── Stage 2: Production image ─────────────────────────────────────────────────
 FROM node:20-alpine
 WORKDIR /app
+
+ARG NODE_ENV=production
+ENV NODE_ENV=$NODE_ENV
 
 COPY --from=builder /app/dist ./dist
 COPY --from=builder /app/node_modules ./node_modules
