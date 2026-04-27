@@ -1,15 +1,27 @@
 version: '3.8'
 
 # ============================================================
-# Coolify deployment — set these env vars in Coolify UI:
-#   DB_HOST, DB_PORT, DB_USERNAME, DB_PASSWORD, DB_NAME
-#   JWT_SECRET, VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY, VAPID_SUBJECT
-#   BACKEND_URL=https://posh-api.fontgenerator.club
-#   CORS_ORIGINS=https://posh.fontgenerator.club,https://posh-api.fontgenerator.club
-#   DB_SYNC=true   ← REQUIRED on first deploy to create MySQL tables
+# Coolify deployment guide:
+#
+# Coolify maps SERVICE_FQDN_<NAME> to set domain for each service.
+# Add these in Coolify environment variables:
+#
+#   SERVICE_FQDN_BACKEND=posh-api.fontgenerator.club
+#   SERVICE_FQDN_FRONTEND=posh.fontgenerator.club
+#   DB_HOST=i4s8wc0kkoosc4wk8gsogcg4
+#   DB_PORT=3306
+#   DB_USERNAME=mysql
+#   DB_PASSWORD=<your_password>
+#   DB_NAME=posh_notifications
+#   JWT_SECRET=<your_jwt_secret>
+#   VAPID_PUBLIC_KEY=<your_vapid_public_key>
+#   VAPID_PRIVATE_KEY=<your_vapid_private_key>
+#   VAPID_SUBJECT=mailto:classstatus0@gmail.com
+#   DB_SYNC=true          ← REQUIRED on first deploy only
 #   SUPER_ADMIN_EMAIL=admin@posh.fontgenerator.club
 #   SUPER_ADMIN_PASSWORD=Admin@Posh2026!
-# After first login: set DB_SYNC=false and redeploy.
+#
+# IMPORTANT: REDIS_HOST must NOT be set — it's hardcoded to 'redis' below.
 # ============================================================
 
 services:
@@ -36,14 +48,13 @@ services:
       NODE_ENV: production
       PORT: 3000
       API_PREFIX: api/v1
-      # Database — always MySQL on this deployment
       DB_TYPE: mysql
       DB_HOST: ${DB_HOST}
       DB_PORT: ${DB_PORT:-3306}
       DB_USERNAME: ${DB_USERNAME}
       DB_PASSWORD: ${DB_PASSWORD}
       DB_NAME: ${DB_NAME:-posh_notifications}
-      # Redis — always use internal Docker service name, never 'localhost'
+      # Redis must point to the internal service name 'redis', never 'localhost'
       REDIS_HOST: redis
       REDIS_PORT: 6379
       JWT_SECRET: ${JWT_SECRET}
@@ -51,15 +62,16 @@ services:
       VAPID_PUBLIC_KEY: ${VAPID_PUBLIC_KEY}
       VAPID_PRIVATE_KEY: ${VAPID_PRIVATE_KEY}
       VAPID_SUBJECT: ${VAPID_SUBJECT}
-      CORS_ORIGINS: ${CORS_ORIGINS:-https://posh.fontgenerator.club}
+      # Must include both domains so CORS allows login from the frontend
+      CORS_ORIGINS: https://posh.fontgenerator.club,https://posh-api.fontgenerator.club
       THROTTLE_TTL: 60
       THROTTLE_LIMIT: 100
-      # DB_SYNC=true creates MySQL tables automatically on first deploy
-      # Set to true in Coolify for first deploy, then change to false
+      # DB_SYNC=true auto-creates all MySQL tables on first deploy
+      # After first successful login, change to false and redeploy
       DB_SYNC: ${DB_SYNC:-true}
       SUPER_ADMIN_EMAIL: ${SUPER_ADMIN_EMAIL:-admin@posh.fontgenerator.club}
       SUPER_ADMIN_PASSWORD: ${SUPER_ADMIN_PASSWORD:-Admin@Posh2026!}
-      FRONTEND_URL: ${FRONTEND_URL:-https://posh.fontgenerator.club}
+      FRONTEND_URL: https://posh.fontgenerator.club
     ports:
       - "3000:3000"
 
@@ -75,10 +87,7 @@ services:
     depends_on:
       - backend
     environment:
-      # BACKEND_INTERNAL_URL: Docker-internal URL — Next.js uses this at runtime
-      # to proxy /api/* requests to the backend container (never goes through internet)
-      BACKEND_INTERNAL_URL: http://backend:3000
-      NEXT_PUBLIC_API_URL: ${BACKEND_URL:-https://posh-api.fontgenerator.club}
+      NEXT_PUBLIC_API_URL: https://posh-api.fontgenerator.club
     ports:
       - "3001:3001"
 
