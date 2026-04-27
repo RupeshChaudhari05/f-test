@@ -9,16 +9,13 @@ const nextConfig = {
     ignoreDuringBuilds: true,
   },
   async rewrites() {
-    // BACKEND_INTERNAL_URL is a server-side env var read at runtime (not baked at build).
-    // In Docker: http://backend:3000  |  In dev: http://localhost:3000
-    const backendUrl =
-      process.env.BACKEND_INTERNAL_URL ||
-      process.env.NEXT_PUBLIC_API_URL ||
-      'http://localhost:3000';
+    // Only used in local dev (when NEXT_PUBLIC_API_URL is not set).
+    // In production Docker, api.ts uses NEXT_PUBLIC_API_URL directly (baked at build time).
+    if (process.env.NEXT_PUBLIC_API_URL) return [];
     return [
       {
         source: '/api/:path*',
-        destination: `${backendUrl}/api/:path*`,
+        destination: 'http://localhost:3000/api/:path*',
       },
     ];
   },

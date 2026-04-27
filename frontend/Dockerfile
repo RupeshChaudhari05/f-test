@@ -3,9 +3,10 @@
 FROM node:20-alpine AS builder
 WORKDIR /app
 
-# NOTE: API URL is NOT baked in at build time.
-# next.config.js reads BACKEND_INTERNAL_URL at runtime so the same image
-# works for any environment without rebuilding.
+# NEXT_PUBLIC_API_URL must be baked at build time so the browser bundle
+# knows the backend URL (https://posh-api.fontgenerator.club).
+ARG NEXT_PUBLIC_API_URL=https://posh-api.fontgenerator.club
+ENV NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL
 
 COPY package.json ./
 RUN npm install --no-audit --no-fund
@@ -16,6 +17,9 @@ RUN npm run build
 # ── Stage 2: Production image ─────────────────────────────────────────────────
 FROM node:20-alpine
 WORKDIR /app
+
+ARG NEXT_PUBLIC_API_URL=https://posh-api.fontgenerator.club
+ENV NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL
 
 COPY --from=builder /app/.next ./.next
 COPY --from=builder /app/node_modules ./node_modules

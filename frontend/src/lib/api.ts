@@ -1,10 +1,9 @@
 import axios from 'axios';
 
-// Client-side: always use relative URLs — Next.js rewrites /api/* to backend via next.config.js.
-// Server-side (SSR): connect directly to backend container using internal Docker URL.
-const baseURL = typeof window !== 'undefined'
-  ? ''
-  : (process.env.BACKEND_INTERNAL_URL || process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000');
+// Always call the backend API directly.
+// NEXT_PUBLIC_API_URL is baked at Docker build time → https://posh-api.fontgenerator.club
+// In local dev it falls back to localhost:3000 via the Next.js rewrite in next.config.js.
+const baseURL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
 const api = axios.create({
   baseURL,
   headers: { 'Content-Type': 'application/json' },
