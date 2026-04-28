@@ -14,7 +14,7 @@ COPY package.json ./
 RUN npm install --no-audit --no-fund
 
 COPY . .
-RUN npm run build
+RUN NODE_OPTIONS="--max-old-space-size=2048" npm run build
 
 # ── Stage 2: Production image ─────────────────────────────────────────────────
 FROM node:20-alpine
@@ -25,9 +25,12 @@ ARG NEXT_PUBLIC_API_URL=https://posh-api.fontgenerator.club
 ENV NODE_ENV=$NODE_ENV
 ENV NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL
 
-COPY --from=builder /app/.next ./.next
-COPY --from=builder /app/node_modules ./node_modules
-COPY --from=builder /app/package.json ./
-COPY --from=builder /app/next.config.js ./
+# Standalone output bundles everything needed — no node_modules copy required
+COPY --from=builder /app/.next/standalone ./
+COPY --from=builder /app/.next/static ./.next/static
+COPY --from=builder /app/public ./public 2>/dev/null || true
+
 EXPOSE 3001
-CMD ["npm", "start"]
+ENV PORT=3001
+ENV HOSTNAME=0.0.0.0
+CMD ["node", "server.js"]

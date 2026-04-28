@@ -1,6 +1,7 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
+  output: 'standalone',
   // Skip type-checking and linting during Docker/CI builds — run these separately
   typescript: {
     ignoreBuildErrors: true,
