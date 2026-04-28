@@ -7,7 +7,7 @@ WORKDIR /app
 ENV NODE_ENV=development
 
 COPY package.json ./
-RUN npm install --no-audit --no-fund
+RUN npm install --include=dev --no-audit --no-fund
 
 COPY . .
 RUN npm run build

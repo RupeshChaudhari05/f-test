@@ -11,7 +11,7 @@ ENV NODE_ENV=development
 ENV NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL
 
 COPY package.json ./
-RUN npm install --no-audit --no-fund
+RUN npm install --include=dev --no-audit --no-fund
 
 COPY . .
 RUN NODE_OPTIONS="--max-old-space-size=2048" npm run build
